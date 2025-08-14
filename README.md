@@ -97,10 +97,7 @@ SoDapV2.0 is a decentralized in-store shopping platform on Solana with built-in 
 - Pay the 20% downpayment; remaining balance is scheduled off-chain/UI.
 - If refunded, only the downpayment returns; points are deducted proportionally.
 
-<div align="center">
-  <img src="public/BNPL Flow.jpeg" alt="SoDap BNPL Flow Diagram" width="800" style="border-radius: 10px;">
-  <p><em>BNPL Flow Process</em></p>
-</div>
+
 
 ### 🎁 Loyalty Points Program
 
