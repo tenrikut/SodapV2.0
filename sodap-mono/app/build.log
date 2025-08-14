@@ -1,0 +1,71 @@
+
+> sodap-app@1.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+[plugin:vite:resolve] [plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "/Users/tamkin/sodap/sodap-mono/sodap-mono/app/node_modules/@toruslabs/eccrypto/dist/eccrypto.esm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+node_modules/@walletconnect/utils/node_modules/ox/_esm/core/internal/cursor.js (2:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/utils/node_modules/ox/_esm/core/internal/cursor.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/utils/node_modules/ox/_esm/core/Address.js (6:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/utils/node_modules/ox/_esm/core/Address.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/ox/_esm/core/internal/cursor.js (2:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/ox/_esm/core/internal/cursor.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/ox/_esm/core/Address.js (6:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/ox/_esm/core/Address.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/universal-provider/node_modules/ox/_esm/core/Address.js (6:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/universal-provider/node_modules/ox/_esm/core/Address.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/universal-provider/node_modules/ox/_esm/core/internal/cursor.js (2:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/universal-provider/node_modules/ox/_esm/core/internal/cursor.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/sign-client/node_modules/ox/_esm/core/internal/cursor.js (2:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/sign-client/node_modules/ox/_esm/core/internal/cursor.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/sign-client/node_modules/ox/_esm/core/Address.js (6:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/sign-client/node_modules/ox/_esm/core/Address.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/core/node_modules/ox/_esm/core/internal/cursor.js (2:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/core/node_modules/ox/_esm/core/internal/cursor.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@walletconnect/core/node_modules/ox/_esm/core/Address.js (6:21): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@walletconnect/core/node_modules/ox/_esm/core/Address.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 7073 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     1.34 kB │ gzip:   0.57 kB
+dist/assets/index-C6x-HSI9.css     74.48 kB │ gzip:  13.21 kB
+dist/assets/index-cCDp1bzg.js      14.75 kB │ gzip:   4.53 kB
+dist/assets/index-CFaFOBsT.js      31.44 kB │ gzip:   6.89 kB
+dist/assets/index-DDol57nV.js   1,425.72 kB │ gzip: 410.46 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.68s

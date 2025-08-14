@@ -1,0 +1,1065 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { WALLET_CONFIG } from "@/config/wallets";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { PublicKey } from "@solana/web3.js";
+import { useRefundTransaction } from "@/hooks/useRefundTransaction";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+
+import { ReturnRequest, useReturnRequests } from "@/hooks/useReturnRequests";
+import {
+  getProcessingRequests,
+  markRequestAsApproved,
+  markRequestAsFailed,
+  markRequestAsProcessing,
+  updateReturnRequest,
+} from "@/utils/returnRequestUtils";
+
+interface Purchase {
+  id: string;
+  transactionSignature: string;
+  storeName: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  receiptAddress: string;
+  storeAddress: string;
+  buyerAddress: string;
+  purchaseTimestamp: number;
+  totalAmount: number;
+  paidAmount?: number; // Amount actually paid by user (for BNPL, this is the down payment)
+  remainingAmount?: number; // Remaining amount for BNPL
+  paymentMethod?: "direct" | "bnpl";
+  bnplTerm?: "3" | "6" | "12";
+  bnplStatus?: "active" | "completed" | "defaulted";
+}
+
+const RefundsTab = () => {
+  console.log("🔄 RefundsTab component rendering...");
+
+  const { returnRequests, refreshRequests } = useReturnRequests();
+  console.log("📋 Return requests from hook:", returnRequests?.length || 0);
+
+  // Filter requests to show both pending and approved requests
+  const [showAllRequests, setShowAllRequests] = useState(false);
+
+  // Get all requests, including approved ones
+  const allRequests = React.useMemo(() => {
+    try {
+      const storedRequests = JSON.parse(
+        localStorage.getItem("sodap-return-requests") || "[]"
+      );
+      return storedRequests;
+    } catch (err) {
+      console.error("Error parsing return requests from localStorage:", err);
+      return [];
+    }
+  }, []); // Remove unnecessary dependency
+
+  // Display either all requests or just pending ones based on filter
+  const displayedRequests = React.useMemo(() => {
+    const allReqs = Array.isArray(allRequests) ? allRequests : [];
+    const pendingReqs = Array.isArray(returnRequests) ? returnRequests : [];
+    return showAllRequests ? allReqs : pendingReqs;
+  }, [showAllRequests, allRequests, returnRequests]);
+  const [selectedRequest, setSelectedRequest] = useState<ReturnRequest | null>(
+    null
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Wallet connection
+  const { connected, publicKey } = useWallet();
+  console.log("🔗 Wallet connection status:", {
+    connected,
+    publicKey: publicKey?.toBase58(),
+  });
+
+  const { processRefund, checkTransactionStatus } = useRefundTransaction();
+
+  // Check if connected wallet is the store manager wallet
+  const isStoreManagerWallet =
+    publicKey?.toBase58() === WALLET_CONFIG.STORE_MANAGER;
+
+  // Store manager wallet address for display
+  const storeManagerWallet = WALLET_CONFIG.STORE_MANAGER;
+
+  // Helper function to update request status in localStorage
+  const updateRequestStatus = useCallback(
+    (requestId: string, updates: Partial<ReturnRequest>) => {
+      try {
+        const storedRequests = JSON.parse(
+          localStorage.getItem("sodap-return-requests") || "[]"
+        );
+        const updatedRequests = storedRequests.map((req: ReturnRequest) =>
+          req.id === requestId ? { ...req, ...updates } : req
+        );
+        localStorage.setItem(
+          "sodap-return-requests",
+          JSON.stringify(updatedRequests)
+        );
+
+        // Refresh the requests list
+        refreshRequests();
+
+        // Dispatch an event to notify other components
+        window.dispatchEvent(new CustomEvent("refundRequestUpdate"));
+
+        return true;
+      } catch (error) {
+        console.error("Error updating request status:", error);
+        return false;
+      }
+    },
+    [refreshRequests]
+  );
+
+  // Function to check processing transactions
+  const checkProcessingTransactions = useCallback(async () => {
+    try {
+      const processingRequests = getProcessingRequests();
+
+      if (processingRequests.length === 0) {
+        return;
+      }
+
+      console.log(
+        `Checking ${processingRequests.length} processing transactions...`
+      );
+
+      // Check each processing transaction
+      for (const request of processingRequests) {
+        try {
+          const status = await checkTransactionStatus(request.refundSignature!);
+
+          if (status === "success") {
+            console.log(
+              `Transaction ${request.refundSignature} confirmed successfully`
+            );
+            markRequestAsApproved(request.id);
+
+            toast.success(
+              `Refund for ${request.storeName} confirmed successfully!`,
+              { duration: 5000 }
+            );
+
+            // Refresh the requests list
+            refreshRequests();
+          } else if (status === "failed") {
+            console.log(`Transaction ${request.refundSignature} failed`);
+            markRequestAsFailed(request.id);
+
+            toast.error(
+              `Refund transaction for ${request.storeName} failed. Please try again.`,
+              { duration: 8000 }
+            );
+
+            // Refresh the requests list
+            refreshRequests();
+          }
+          // If status is still "pending", keep checking
+        } catch (error) {
+          console.error(
+            `Error checking transaction ${request.refundSignature}:`,
+            error
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error checking processing transactions:", error);
+    }
+  }, [checkTransactionStatus, refreshRequests]);
+
+  // Set up automatic checking of processing transactions every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(checkProcessingTransactions, 30000); // 30 seconds
+
+    // Also check once immediately when component mounts
+    checkProcessingTransactions();
+
+    return () => clearInterval(interval);
+  }, [checkProcessingTransactions]);
+
+  const handleApproveRefund = async (request: ReturnRequest) => {
+    // Reset error message
+    setErrorMessage(null);
+    
+    // Validate request object
+    if (!request || !request.id) {
+      toast.error("Invalid refund request");
+      return;
+    }
+    
+    try {
+      // Check wallet connection
+      if (!connected) {
+        toast.error("Please connect your wallet first.");
+        return;
+      }
+
+      // Check if connected wallet is store manager
+      if (!isStoreManagerWallet) {
+        toast.error("Only store manager can approve refunds.");
+        return;
+      }
+
+      // Safely update state
+      try {
+        setSelectedRequest(request);
+        setIsProcessing(true);
+      } catch (stateError) {
+        console.error("Error updating component state:", stateError);
+        toast.error("Failed to update component state");
+        return;
+      }
+
+      // Process refund using the stored buyer address
+      // Validate buyer address before creating PublicKey
+      if (!request.buyerAddress) {
+        toast.error("Buyer wallet address is missing");
+        return;
+      }
+
+      try {
+        // Get the request from localStorage to ensure we have the latest data
+        const storedRequests = JSON.parse(
+          localStorage.getItem("sodap-return-requests") || "[]"
+        );
+
+        // First try to find by ID
+        let currentRequest = storedRequests.find(
+          (req: ReturnRequest) => req.id === request.id
+        );
+
+        // If not found by ID, try to find by transaction signature as fallback
+        if (!currentRequest && request.transactionSignature) {
+          currentRequest = storedRequests.find(
+            (req: ReturnRequest) =>
+              req.transactionSignature === request.transactionSignature
+          );
+        }
+
+        // If still not found, use the provided request but log a warning
+        if (!currentRequest) {
+          console.warn(
+            "Return request not found in localStorage, using provided request"
+          );
+          currentRequest = request;
+        }
+
+        // Create a purchase object from the request with BNPL data from localStorage
+        let purchase: Purchase = {
+          id: currentRequest.id,
+          transactionSignature: currentRequest.transactionSignature,
+          storeName: currentRequest.storeName,
+          items: currentRequest.items,
+          receiptAddress: currentRequest.receiptAddress,
+          storeAddress: currentRequest.storeAddress,
+          buyerAddress: currentRequest.buyerAddress,
+          purchaseTimestamp: currentRequest.purchaseTimestamp,
+          totalAmount: currentRequest.totalAmount,
+        };
+
+        // Get BNPL data from localStorage to ensure correct refund amount
+        try {
+          const purchaseHistoryStr = localStorage.getItem("sodap-purchases");
+          if (purchaseHistoryStr) {
+            const purchaseHistory = JSON.parse(purchaseHistoryStr);
+            const storedPurchase = purchaseHistory.find((p: any) => 
+              p.transactionSignature === currentRequest.transactionSignature ||
+              p.id === currentRequest.id
+            );
+            
+            if (storedPurchase) {
+              console.log("🔍 Found stored purchase with BNPL data:", storedPurchase);
+              // Add BNPL fields to the purchase object
+              purchase = {
+                ...purchase,
+                paidAmount: storedPurchase.paidAmount,
+                remainingAmount: storedPurchase.remainingAmount,
+                paymentMethod: storedPurchase.paymentMethod,
+                bnplTerm: storedPurchase.bnplTerm,
+                bnplStatus: storedPurchase.bnplStatus,
+              };
+              
+              console.log(`💰 Purchase payment method: ${purchase.paymentMethod}`);
+              if (purchase.paymentMethod === "bnpl") {
+                console.log(`🏦 BNPL refund - User paid: ${purchase.paidAmount} SOL, Will refund: ${purchase.paidAmount} SOL`);
+              }
+            } else {
+              console.warn("⚠️ No stored purchase found for refund request");
+            }
+          }
+        } catch (error) {
+          console.warn("Error accessing purchase history for refund:", error);
+        }
+
+        // Process the refund
+        console.log("Processing refund for purchase:", purchase);
+        toast.loading("Processing refund transaction...", {
+          id: "refund-toast",
+        });
+
+        try {
+          const result = await processRefund(purchase);
+
+          if (result.status === "success") {
+            console.log("Refund processed successfully:", result);
+            toast.success("Refund processed successfully!", {
+              id: "refund-toast",
+            });
+
+            // Update the request status using utility function
+            updateReturnRequest(currentRequest.id, {
+              status: "Approved",
+              refundSignature: result.signature,
+              refundDate: new Date().toISOString(),
+            });
+
+            setOpen(false);
+
+            // Update the selected request with the refund information
+            if (selectedRequest) {
+              setSelectedRequest({
+                ...selectedRequest,
+                status: "Approved",
+                refundSignature: result.signature,
+                refundDate: new Date().toISOString(),
+              });
+            }
+
+            // Refresh the requests list
+            refreshRequests();
+          } else if (result.status === "pending") {
+            console.log("Refund transaction is pending:", result);
+            toast.info(
+              "Transaction submitted but still confirming. Please check your wallet and Solana Explorer.",
+              { id: "refund-toast" }
+            );
+
+            // Update the request with processing status using utility function
+            markRequestAsProcessing(currentRequest.id, result.signature);
+
+            setOpen(false);
+
+            // Update the selected request with the pending information
+            if (selectedRequest) {
+              setSelectedRequest({
+                ...selectedRequest,
+                status: "Processing",
+                refundSignature: result.signature,
+                refundDate: new Date().toISOString(),
+              });
+            }
+
+            // Refresh the requests list
+            refreshRequests();
+          } else {
+            console.error(
+              "Refund transaction failed with status:",
+              result.status
+            );
+            setErrorMessage(
+              "Refund transaction failed. Please check your wallet balance and try again."
+            );
+            toast.error(
+              "Failed to process refund. Please check your wallet balance.",
+              { id: "refund-toast" }
+            );
+          }
+        } catch (err) {
+          console.error("Error in refund transaction:", err);
+          let errorMsg = "Refund transaction failed. ";
+          
+          // Safely update state even on error
+          try {
+            setIsProcessing(false);
+          } catch (stateError) {
+            console.error("Error updating processing state:", stateError);
+          }
+
+          // Extract more specific error message if available
+          if (err instanceof Error) {
+            if (
+              err.message.includes("insufficient funds") ||
+              err.message.includes("Insufficient funds")
+            ) {
+              errorMsg +=
+                "Insufficient funds in store wallet. Please add SOL to the store wallet and try again.";
+            } else if (
+              err.message.includes("timeout") ||
+              err.message.includes("Timeout")
+            ) {
+              errorMsg +=
+                "Transaction timed out. The network may be congested. Please try again later.";
+            } else if (err.message.includes("rejected")) {
+              errorMsg += "Transaction was rejected by your wallet.";
+            } else {
+              errorMsg += err.message;
+            }
+          } else {
+            errorMsg += "Please try again.";
+          }
+
+          try {
+            setErrorMessage(errorMsg);
+            toast.error(errorMsg, { id: "refund-toast" });
+          } catch (uiError) {
+            console.error("Error updating UI:", uiError);
+          }
+        }
+      } catch (err) {
+        console.error("Error processing refund:", err);
+        setErrorMessage(
+          `Error: ${err instanceof Error ? err.message : "Unknown error"}`
+        );
+        toast.error("Failed to process refund");
+      } finally {
+        try {
+          setIsProcessing(false);
+        } catch (stateError) {
+          console.error("Error updating processing state in finally:", stateError);
+        }
+      }
+    } catch (err) {
+      console.error("Error in handleApproveRefund:", err);
+      
+      try {
+        setErrorMessage(
+          `Error: ${err instanceof Error ? err.message : "Unknown error"}`
+        );
+        toast.error("Failed to process refund");
+        setIsProcessing(false);
+      } catch (recoveryError) {
+        console.error("Error during error recovery:", recoveryError);
+        // Force component refresh as last resort
+        window.location.reload();
+      }
+    }
+  };
+
+  const createPurchaseData = (signature: string): Purchase => {
+    console.log("🔍 Creating purchase data for signature:", signature);
+
+    // Try to get real purchase data from localStorage first
+    const purchaseHistoryStr = localStorage.getItem("sodap-purchases");
+    if (purchaseHistoryStr) {
+      try {
+        const purchaseHistory = JSON.parse(purchaseHistoryStr);
+        const existingPurchase = purchaseHistory.find(
+          (p: any) => p.transactionSignature === signature
+        );
+
+        if (existingPurchase) {
+          console.log("✅ Found existing purchase data:", existingPurchase);
+          return {
+            id: existingPurchase.id,
+            transactionSignature: signature,
+            storeName: existingPurchase.storeName || "SoDap Store",
+            items: existingPurchase.items || [
+              {
+                name: "Purchase Item",
+                price: existingPurchase.totalAmount || 0.5,
+                quantity: 1,
+              },
+            ],
+            receiptAddress:
+              existingPurchase.receiptAddress || "receipt_address",
+            storeAddress: existingPurchase.storeAddress || "store_address",
+            buyerAddress:
+              existingPurchase.buyerAddress ||
+              "DfhzrfdE5VDk43iP1NL8MLS5xFaxquxJVFtjhjRmHLAW",
+            purchaseTimestamp:
+              existingPurchase.purchaseTimestamp ||
+              Math.floor(Date.now() / 1000),
+            totalAmount: existingPurchase.totalAmount || 0.5,
+            paidAmount: existingPurchase.paidAmount,
+            remainingAmount: existingPurchase.remainingAmount,
+            paymentMethod: existingPurchase.paymentMethod,
+            bnplTerm: existingPurchase.bnplTerm,
+            bnplStatus: existingPurchase.bnplStatus,
+          };
+        }
+      } catch (error) {
+        console.warn("Error parsing purchase history:", error);
+      }
+    }
+
+    console.log("⚠️ No existing purchase found, creating fallback data");
+    // Fallback to default data if no real purchase found
+    return {
+      id: `purchase_${Math.random().toString(36).substring(2, 9)}`,
+      transactionSignature: signature,
+      storeName: "SoDap Store",
+      items: [{ name: "Unknown Item", price: 0.5, quantity: 1 }],
+      receiptAddress: "receipt_address",
+      storeAddress: "store_address",
+      buyerAddress: "DfhzrfdE5VDk43iP1NL8MLS5xFaxquxJVFtjhjRmHLAW",
+      purchaseTimestamp: Math.floor(Date.now() / 1000),
+      totalAmount: 0.5,
+    };
+  };
+
+  const addTransactionToRefunds = async (signature: string) => {
+    try {
+      // Create a mock purchase
+      const purchase = createPurchaseData(signature);
+
+      // Create a return request
+      const newRequest: ReturnRequest = {
+        id: `ret_${Math.random().toString(36).substring(2, 9)}`,
+        purchaseId: purchase.id,
+        date: new Date().toISOString(),
+        items: purchase.items,
+        reason: "Test return request",
+        status: "Pending",
+        storeName: purchase.storeName,
+        transactionSignature: purchase.transactionSignature,
+        receiptAddress: purchase.receiptAddress,
+        storeAddress: purchase.storeAddress,
+        buyerAddress: purchase.buyerAddress,
+        purchaseTimestamp: purchase.purchaseTimestamp,
+        totalAmount: purchase.totalAmount,
+      };
+
+      // Add to localStorage
+      try {
+        const existingRequests = JSON.parse(
+          localStorage.getItem("sodap-return-requests") || "[]"
+        );
+        const updatedRequests = [...existingRequests, newRequest];
+        localStorage.setItem(
+          "sodap-return-requests",
+          JSON.stringify(updatedRequests)
+        );
+
+        // Also update sessionStorage for backward compatibility
+        sessionStorage.setItem(
+          "returnRequests",
+          JSON.stringify(updatedRequests)
+        );
+
+        toast.success("Test return request added successfully");
+
+        // Refresh the requests list
+        refreshRequests();
+
+        // Dispatch an event to notify other components
+        window.dispatchEvent(
+          new CustomEvent("returnRequestsUpdated", {
+            detail: { requests: updatedRequests },
+          })
+        );
+      } catch (err) {
+        console.error("Error saving return request to localStorage:", err);
+        toast.error("Failed to save return request");
+      }
+    } catch (error) {
+      console.error("Error adding transaction to refunds:", error);
+      toast.error("Failed to create return request");
+    }
+  };
+
+  const handleRejectRefund = async (request: ReturnRequest) => {
+    try {
+      // Check wallet connection
+      if (!connected) {
+        toast.error("Please connect your wallet first.");
+        return;
+      }
+
+      // Check if connected wallet is store manager
+      if (!isStoreManagerWallet) {
+        toast.error("Only store manager can reject refunds.");
+        return;
+      }
+
+      // Update request status in localStorage
+      const savedRequests = JSON.parse(
+        localStorage.getItem("sodap-return-requests") || "[]"
+      );
+      const updatedRequests = savedRequests.map((req: ReturnRequest) =>
+        req.id === request.id ? { ...req, status: "Rejected" } : req
+      );
+      localStorage.setItem(
+        "sodap-return-requests",
+        JSON.stringify(updatedRequests)
+      );
+
+      setSelectedRequest(null);
+      setOpen(false);
+      toast.success("Refund rejected successfully");
+
+      // Notify other tabs
+      window.dispatchEvent(new CustomEvent("refundRequestUpdate"));
+    } catch (error) {
+      console.error("Error rejecting refund:", error);
+      toast.error("Failed to reject refund");
+    }
+  };
+
+  console.log("🎯 About to render RefundsTab with:", {
+    displayedRequests: displayedRequests?.length || 0,
+    connected,
+    isStoreManagerWallet,
+    showAllRequests,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold" id="pending-requests-list">
+            Pending Refund Requests
+          </h2>
+          <div className="flex gap-4 items-center">
+            <Button
+              onClick={checkProcessingTransactions}
+              variant="outline"
+              size="sm"
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                "Check Processing"
+              )}
+            </Button>
+            <Button
+              onClick={() =>
+                addTransactionToRefunds(
+                  "2RhSsBGg9xTZ7QyNmZY5ozdStTDnfLYBa2dtFaZ8aUHdqvymm2HaUPJvVMEcqcBJFcYmnj1vgKRitp7jNY5ni53H"
+                )
+              }
+              variant="outline"
+              size="sm"
+            >
+              Add Transaction to Refunds
+            </Button>
+            <WalletMultiButton />
+          </div>
+        </div>
+
+        {!connected ? (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <Alert className="mb-4 border-yellow-500 bg-yellow-50">
+                  <AlertTitle>Wallet not connected</AlertTitle>
+                  <AlertDescription>
+                    Please connect your wallet to manage refund requests.
+                  </AlertDescription>
+                </Alert>
+                <WalletMultiButton className="bg-sodap-purple hover:bg-sodap-purple/90" />
+              </div>
+            </CardContent>
+          </Card>
+        ) : !isStoreManagerWallet ? (
+          <Card className="mb-4">
+            <CardContent className="pt-6">
+              <Alert className="mb-4 border-red-500 bg-red-50">
+                <AlertTitle>Wrong wallet connected</AlertTitle>
+                <AlertDescription>
+                  Please connect with the store manager wallet:
+                  <span className="font-mono text-sm block mt-1 bg-gray-100 p-1 rounded">
+                    {storeManagerWallet}
+                  </span>
+                </AlertDescription>
+              </Alert>
+              <div className="flex justify-center">
+                <WalletMultiButton className="bg-sodap-purple hover:bg-sodap-purple/90" />
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <div className="text-sm text-gray-500 mb-4">
+          Total pending requests: {returnRequests.length}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Refund Requests</h3>
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+            {returnRequests.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            {showAllRequests
+              ? `Showing all requests (${allRequests.length})`
+              : `Pending requests: ${returnRequests.length}`}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAllRequests(!showAllRequests)}
+          >
+            {showAllRequests ? "Show Pending Only" : "Show All Requests"}
+          </Button>
+        </div>
+      </div>
+
+      {!displayedRequests || displayedRequests.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">No Refund Requests</h3>
+              <p className="text-gray-500">
+                {showAllRequests
+                  ? "There are no refund requests to display."
+                  : "There are no pending refund requests."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {displayedRequests && displayedRequests.map((request) => (
+            <Card
+              key={request.id}
+              className={`
+                ${
+                  request.status === "Approved"
+                    ? "border-green-200 bg-green-50"
+                    : ""
+                }
+                ${
+                  request.status === "Rejected"
+                    ? "border-red-200 bg-red-50"
+                    : ""
+                }
+                ${
+                  request.status === "Processing"
+                    ? "border-blue-200 bg-blue-50"
+                    : ""
+                }
+                ${request.status === "Pending" ? "border-yellow-200" : ""}
+                hover:shadow-md transition-shadow
+              `}
+              onClick={() => {
+                setSelectedRequest(request);
+                setOpen(true);
+              }}
+            >
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold">{request.storeName}</h4>
+                    <p className="text-sm text-gray-500">
+                      Request Date:{" "}
+                      {new Date(request.date).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {(() => {
+                        // Get purchase data from localStorage to determine payment method
+                        let purchase = null;
+                        try {
+                          const purchaseHistoryStr = localStorage.getItem("sodap-purchases");
+                          if (purchaseHistoryStr) {
+                            const purchaseHistory = JSON.parse(purchaseHistoryStr);
+                            purchase = purchaseHistory.find((p: any) => 
+                              p.transactionSignature === request.transactionSignature ||
+                              p.id === request.purchaseId
+                            );
+                          }
+                        } catch (error) {
+                          console.warn("Error accessing purchase history:", error);
+                        }
+                        
+                        const refundAmount = purchase?.paymentMethod === "bnpl" 
+                          ? (purchase.paidAmount || request.totalAmount)
+                          : request.totalAmount;
+                        
+                        return purchase?.paymentMethod === "bnpl" 
+                          ? `Refund Amount: ${refundAmount.toFixed(2)} SOL (BNPL down payment)`
+                          : `Total: ${refundAmount.toFixed(2)} SOL`;
+                      })()}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`
+                      px-3 py-1 rounded-full text-xs
+                      ${
+                        request.status === "Approved"
+                          ? "bg-green-100 text-green-800"
+                          : ""
+                      }
+                      ${
+                        request.status === "Rejected"
+                          ? "bg-red-100 text-red-800"
+                          : ""
+                      }
+                      ${
+                        request.status === "Processing"
+                          ? "bg-blue-100 text-blue-800"
+                          : ""
+                      }
+                      ${
+                        request.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : ""
+                      }
+                    `}
+                    >
+                      {request.status}
+                    </span>
+                    {(request.status === "Approved" ||
+                      request.status === "Processing") &&
+                      request.refundSignature && (
+                        <a
+                          href={`https://explorer.solana.com/tx/${request.refundSignature}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-500 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View Refund Transaction
+                        </a>
+                      )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund Request Details</DialogTitle>
+            <DialogDescription>
+              Review the details of this refund request.
+            </DialogDescription>
+          </DialogHeader>
+          {errorMessage && (
+            <Alert className="mb-4 border-yellow-500 bg-yellow-50">
+              <AlertTitle className="text-yellow-800">Warning</AlertTitle>
+              <AlertDescription className="text-yellow-700">
+                {errorMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Items</h4>
+                <div className="space-y-2">
+                  {selectedRequest.items.map((item, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>
+                        {item.name} x{item.quantity}
+                      </span>
+                      <span>{item.price.toFixed(2)} SOL</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Return Reason</h4>
+                <p className="text-sm text-gray-500">
+                  {selectedRequest.reason}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Transaction</h4>
+                <a
+                  href={`https://explorer.solana.com/tx/${selectedRequest.transactionSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-500 hover:underline break-all"
+                >
+                  {selectedRequest.transactionSignature}
+                </a>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                {selectedRequest.status === "Approved" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Refunded
+                    </span>
+                    {selectedRequest.refundSignature && (
+                      <a
+                        href={`https://explorer.solana.com/tx/${selectedRequest.refundSignature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View Refund Transaction
+                      </a>
+                    )}
+                  </div>
+                ) : selectedRequest.status === "Processing" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center">
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Processing Refund
+                    </span>
+                    {selectedRequest.refundSignature && (
+                      <a
+                        href={`https://explorer.solana.com/tx/${selectedRequest.refundSignature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Check Transaction Status
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleRejectRefund(selectedRequest)}
+                      disabled={
+                        isProcessing || selectedRequest.status !== "Pending"
+                      }
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      onClick={() => handleApproveRefund(selectedRequest)}
+                      className="bg-green-500 hover:bg-green-600"
+                      disabled={
+                        isProcessing ||
+                        !connected ||
+                        !isStoreManagerWallet ||
+                        selectedRequest.status !== "Pending"
+                      }
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Process Refund"
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// Enhanced error boundary wrapper
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+}
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+class RefundsTabErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("❌ RefundsTab Error Boundary caught error:", error, errorInfo);
+    this.setState({
+      error: error,
+      errorInfo: errorInfo
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
+          <h3 className="text-red-800 font-semibold">RefundsTab Error</h3>
+          <p className="text-red-600">Something went wrong with the refunds component</p>
+          <details className="mt-2 text-xs text-red-500">
+            <summary>Error Details</summary>
+            <pre className="mt-1 whitespace-pre-wrap">
+              {this.state.error && this.state.error.toString()}
+              <br />
+              {this.state.errorInfo?.componentStack}
+            </pre>
+          </details>
+          <div className="mt-4 space-x-2">
+            <button
+              onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Wrap the component in error boundary
+const RefundsTabWrapper = () => {
+  console.log("🔄 RefundsTabWrapper rendering...");
+
+  return (
+    <RefundsTabErrorBoundary>
+      <RefundsTab />
+    </RefundsTabErrorBoundary>
+  );
+};
+
+export default RefundsTabWrapper;

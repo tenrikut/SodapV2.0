@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solana Connection Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+      }
+      .success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+      .info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔍 Solana Connection Verification</h1>
+
+      <div class="info">
+        <h3>Expected Configuration:</h3>
+        <ul>
+          <li>✅ Network: <strong>Devnet</strong></li>
+          <li>✅ Endpoint: <strong>https://api.devnet.solana.com</strong></li>
+          <li>
+            ✅ Program ID:
+            <strong>9HYgQUotQqJ9muAbFbJ5Ck8n5SCrdf3KMaSa1iUGsrb6</strong>
+          </li>
+          <li>❌ Should NOT be: <strong>localhost:8899</strong></li>
+        </ul>
+      </div>
+
+      <h3>Quick Tests:</h3>
+      <button onclick="testDevnetConnection()">Test Devnet Connection</button>
+      <button onclick="checkWalletBalance()">Check Store Wallet Balance</button>
+      <button onclick="verifyProgram()">Verify Program on Devnet</button>
+
+      <div id="results"></div>
+
+      <h3>Instructions to Verify in Your App:</h3>
+      <div class="info">
+        <ol>
+          <li>Open <strong>http://localhost:8080</strong> in your browser</li>
+          <li>Open <strong>Developer Console</strong> (F12)</li>
+          <li>
+            Look for these logs:
+            <pre>
+🌐 Environment Variables:
+📍 Is devnet? true
+🚫 Is localhost? false
+📡 Connection endpoint: https://api.devnet.solana.com</pre
+            >
+          </li>
+          <li>
+            Go to <strong>/dashboard/manager</strong> and check refunds tab
+          </li>
+          <li>Console should show devnet connection, NOT localhost</li>
+        </ol>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script>
+      const { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL } =
+        solanaWeb3;
+
+      function addResult(message, type = "info") {
+        const results = document.getElementById("results");
+        const div = document.createElement("div");
+        div.className = `status ${type}`;
+        div.innerHTML = message;
+        results.appendChild(div);
+      }
+
+      async function testDevnetConnection() {
+        addResult("🔄 Testing devnet connection...", "info");
+        try {
+          const connection = new Connection(
+            clusterApiUrl("devnet"),
+            "confirmed"
+          );
+          const blockHeight = await connection.getBlockHeight();
+          addResult(
+            `✅ Devnet connection successful! Block height: ${blockHeight}`,
+            "success"
+          );
+        } catch (error) {
+          addResult(`❌ Devnet connection failed: ${error.message}`, "error");
+        }
+      }
+
+      async function checkWalletBalance() {
+        addResult("💰 Checking store manager wallet balance...", "info");
+        try {
+          const connection = new Connection(
+            clusterApiUrl("devnet"),
+            "confirmed"
+          );
+          const walletKey = new PublicKey(
+            "HvG8jN4UinWpd3WAnEhH56qMi9dq6w3Rg1uj3sEmQ7q7"
+          );
+          const balance = await connection.getBalance(walletKey);
+          addResult(
+            `✅ Store wallet balance: ${balance / LAMPORTS_PER_SOL} SOL`,
+            "success"
+          );
+        } catch (error) {
+          addResult(
+            `❌ Wallet balance check failed: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      async function verifyProgram() {
+        addResult("🔍 Verifying program on devnet...", "info");
+        try {
+          const connection = new Connection(
+            clusterApiUrl("devnet"),
+            "confirmed"
+          );
+          const programKey = new PublicKey(
+            "9HYgQUotQqJ9muAbFbJ5Ck8n5SCrdf3KMaSa1iUGsrb6"
+          );
+          const accountInfo = await connection.getAccountInfo(programKey);
+          if (accountInfo && accountInfo.executable) {
+            addResult("✅ Program found and executable on devnet!", "success");
+          } else {
+            addResult(
+              "❌ Program not found or not executable on devnet",
+              "error"
+            );
+          }
+        } catch (error) {
+          addResult(
+            `❌ Program verification failed: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      // Auto-run basic test on load
+      setTimeout(testDevnetConnection, 1000);
+    </script>
+  </body>
+</html>
