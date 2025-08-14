@@ -1,4 +1,4 @@
-# SoDap - Scan to go decentralized in-store shopping platform .
+# SoDapV2.0 - Scan to go decentralized in-store shopping platform .
 
 <div align="center">
   <img src="sodap landing page.png" alt="SoDap Logo" width="1000" style="border-radius: 10px;">
@@ -9,7 +9,7 @@
 
 ### 🌟 Overview
 
-SoDap is a decentralized shopping platform powered by the Solana blockchain. It aims to revolutionize in-store shopping by providing secure, transparent, and efficient shopping experiences for both customers and store owners through blockchain-based payment processing and store management.
+SoDapV2.0 is a decentralized shopping platform powered by the Solana blockchain. It aims to revolutionize in-store shopping by providing secure, transparent, and efficient shopping experiences for both customers and store owners through blockchain-based payment processing and store management.
 
 ### 📖 Table of Contents
 
