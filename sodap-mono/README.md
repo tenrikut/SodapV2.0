@@ -222,7 +222,15 @@ programs/
 The following diagram illustrates the purchase flow in SoDap, showing how customers interact with stores and the Solana blockchain:
 
 <div align="center">
-  <img src="public/Purchase flow.png" alt="SoDap Purchase Flow Diagram" width="800">
+  <img src="../public/PurchaseFlow.jpeg" alt="SoDap Purchase Flow Diagram" width="800">
+</div>
+
+#### BNPL Flow
+
+The following diagram illustrates the BNPL flow in SoDap, covering downpayment, points redemption, and refund behavior:
+
+<div align="center">
+  <img src="../public/BNPL Flow.jpeg" alt="SoDap BNPL Flow Diagram" width="800">
 </div>
 
 #### Refund Flow
@@ -230,7 +238,7 @@ The following diagram illustrates the purchase flow in SoDap, showing how custom
 The following diagram illustrates the refund process in SoDap, showing how store managers process refund requests:
 
 <div align="center">
-  <img src="public/Refund flow.png" alt="SoDap Refund Flow Diagram" width="800">
+  <img src="../public/refund-flow.jpeg" alt="SoDap Refund Flow Diagram" width="800">
 </div>
 
 ## 📊 Data Models
