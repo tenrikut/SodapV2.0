@@ -9,7 +9,7 @@
 
 ### 🌟 Overview
 
-oDapV2.0 is a decentralized in-store shopping platform on Solana with built-in Buy Now, Pay Later (BNPL), a transparent loyalty system, and verifiable refunds. Payments run through on-chain escrow for security and instant settlement, while BNPL and loyalty logic are enforced on-chain for consistency and fairness.
+SoDapV2.0 is a decentralized in-store shopping platform on Solana with built-in Buy Now, Pay Later (BNPL), a transparent loyalty system, and verifiable refunds. Payments run through on-chain escrow for security and instant settlement, while BNPL and loyalty logic are enforced on-chain for consistency and fairness.
 - BNPL: On-chain 20% downpayment with escrow; remaining balance is scheduled off-chain. Refunds return only the downpayment, preventing abuse and preserving merchant protection.
 - Loyalty: Earn 10 points per 1 SOL actually paid; redeem at 100 points = 1 SOL. Points are awarded and deducted based on real spend and refund amounts.
 - Refunds: Fast, transparent, and programmatic—escrow-backed and verified on-chain, aligned with BNPL and loyalty rules for predictable outcomes.
