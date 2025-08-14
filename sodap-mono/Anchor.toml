@@ -7,17 +7,17 @@ resolution = true
 skip-lint = true
 
 [programs.devnet]
-sodap = "9NgjNh7QMk6227b1LWimxke2oCJnbE45JR927TSgra9a"
+sodap = "G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "/Users/tamkin/.config/solana/id.json"
 
 [scripts]
-build = "anchor build"
+build = "anchor build --arch sbf && cp programs/sodap/target/deploy/sodap.so target/deploy/sodap.so"
 deploy = "anchor deploy --provider.cluster devnet"
 postbuild = "mkdir -p app/src/idl && cp target/idl/sodap.json app/src/idl/sodap.json && cp target/types/sodap.ts app/src/idl/sodap.ts && echo 'Successfully synced IDL files to frontend'"
 test = "anchor test"

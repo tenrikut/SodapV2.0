@@ -3,7 +3,7 @@
 use anchor_lang::prelude::*;
 
 // Declare the program ID used by Anchor
-declare_id!("9NgjNh7QMk6227b1LWimxke2oCJnbE45JR927TSgra9a");
+declare_id!("G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb");
 
 // Module declarations without re-exports
 mod error;
