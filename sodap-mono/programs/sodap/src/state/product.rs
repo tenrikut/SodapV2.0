@@ -1,13 +1,14 @@
 use super::store::Store;
 use crate::error::CustomError;
 use crate::state::Escrow;
-use crate::types::{AnomalyFlag, TokenizedType, TransactionStatus};
+use crate::types::{AnomalyFlag, StablePrice, TokenizedType, TransactionStatus};
 use anchor_lang::prelude::*;
 
 #[account]
 pub struct Product {
     pub uuid: [u8; 16],
-    pub price: u64,
+    pub price: u64,                    // Legacy price field (kept for backward compatibility)
+    pub stable_pricing: StablePrice,   // New stable pricing in USDC and SOL
     pub stock: u64,
     pub tokenized_type: TokenizedType,
     pub is_active: bool,
@@ -17,7 +18,9 @@ pub struct Product {
 }
 
 impl Product {
-    pub const LEN: usize = 8 + 16 + 8 + 8 + 1 + (4 + 200) + 32 + 32;
+    // Calculate: discriminator + uuid + price + stable_pricing + stock + tokenized_type + is_active + metadata_uri + store + authority
+    // StablePrice: usdc_price(8) + sol_price(8) + last_updated(8) + is_fixed(1) = 25 bytes
+    pub const LEN: usize = 8 + 16 + 8 + 25 + 8 + 1 + 1 + (4 + 200) + 32 + 32;
 }
 
 #[account]

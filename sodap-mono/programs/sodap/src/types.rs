@@ -112,3 +112,17 @@ pub enum LoyaltyTransactionType {
     Gifted,   // Points gifted to another user
     Received, // Points received from another user
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq)]
+pub enum Currency {
+    SOL,  // Native Solana token
+    USDC, // USD Coin stablecoin
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
+pub struct StablePrice {
+    pub usdc_price: u64,        // Price in USDC (6 decimals)
+    pub sol_price: u64,         // Price in SOL (9 decimals)
+    pub last_updated: i64,      // Timestamp of last price update
+    pub is_fixed: bool,         // Whether prices are fixed or use oracle
+}

@@ -4,7 +4,7 @@ pub use crate::state::product::{
 };
 use crate::state::store::Store;
 use crate::state::{Escrow, RefundEscrow, ReleaseEscrow};
-use crate::types::{TokenizedType, TransactionStatus};
+use crate::types::{StablePrice, TokenizedType, TransactionStatus};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{self, Transfer};
 
@@ -29,13 +29,25 @@ pub fn register_product(
     ctx: Context<RegisterProduct>,
     product_uuid: [u8; 16],
     price: u64,
+    usdc_price: u64,
+    sol_price: u64,
     stock: u64,
     tokenized_type: TokenizedType,
     metadata_uri: String,
+    is_fixed_pricing: bool,
 ) -> Result<()> {
     let product = &mut ctx.accounts.product;
     product.uuid = product_uuid;
-    product.price = price;
+    product.price = price; // Keep legacy field for backward compatibility
+    
+    // Set stable pricing
+    product.stable_pricing = StablePrice {
+        usdc_price,
+        sol_price,
+        last_updated: Clock::get()?.unix_timestamp,
+        is_fixed: is_fixed_pricing,
+    };
+    
     product.stock = stock;
     product.tokenized_type = tokenized_type;
     product.metadata_uri = metadata_uri;
@@ -50,14 +62,32 @@ pub fn update_product(
     ctx: Context<UpdateProduct>,
     _product_uuid: [u8; 16],
     new_price: Option<u64>,
+    new_usdc_price: Option<u64>,
+    new_sol_price: Option<u64>,
     new_stock: Option<u64>,
     new_metadata_uri: Option<String>,
     new_tokenized_type: Option<TokenizedType>,
+    update_price_timestamp: Option<bool>,
 ) -> Result<()> {
     let product = &mut ctx.accounts.product;
 
     if let Some(price) = new_price {
-        product.price = price;
+        product.price = price; // Legacy field
+    }
+
+    // Update stable pricing if provided
+    if new_usdc_price.is_some() || new_sol_price.is_some() || update_price_timestamp.unwrap_or(false) {
+        if let Some(usdc_price) = new_usdc_price {
+            product.stable_pricing.usdc_price = usdc_price;
+        }
+        
+        if let Some(sol_price) = new_sol_price {
+            product.stable_pricing.sol_price = sol_price;
+        }
+        
+        if update_price_timestamp.unwrap_or(false) {
+            product.stable_pricing.last_updated = Clock::get()?.unix_timestamp;
+        }
     }
 
     if let Some(stock) = new_stock {
