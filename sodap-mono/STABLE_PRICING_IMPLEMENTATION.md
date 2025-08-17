@@ -7,17 +7,20 @@ SODAP v2.0 now supports **stable pricing in both USDC and SOL**, allowing users 
 ## ✨ Key Features
 
 ### 🎯 **Dual Currency Support**
+
 - **USDC Pricing**: Stable USD-based pricing (6 decimals precision)
 - **SOL Pricing**: Native Solana token pricing (9 decimals precision)
 - **Real-time Conversion**: Automatic conversion between currencies
 - **User Preference**: Users can switch between USDC and SOL as primary display
 
 ### 🔄 **Pricing Modes**
+
 - **Fixed Pricing**: Store-set stable prices that don't change
 - **Live Pricing**: Market-based prices with automatic updates
 - **Stale Detection**: Visual indicators when prices are outdated (>1 hour)
 
 ### 🛒 **Shopping Integration**
+
 - **Product Cards**: Show prices in both currencies
 - **Shopping Cart**: Calculate totals in user's preferred currency
 - **Checkout**: Support payment in either USDC or SOL
@@ -27,6 +30,7 @@ SODAP v2.0 now supports **stable pricing in both USDC and SOL**, allowing users 
 ### **Blockchain Changes**
 
 #### New Types (programs/sodap/src/types.rs)
+
 ```rust
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq)]
 pub enum Currency {
@@ -44,6 +48,7 @@ pub struct StablePrice {
 ```
 
 #### Updated Product Structure
+
 ```rust
 #[account]
 pub struct Product {
@@ -60,6 +65,7 @@ pub struct Product {
 ```
 
 #### Price Conversion Utilities
+
 ```rust
 pub struct PriceConverter;
 
@@ -76,18 +82,21 @@ impl PriceConverter {
 ### **Frontend Components**
 
 #### StablePriceDisplay Component
+
 - Displays prices in both USDC and SOL
 - Currency toggle functionality
 - Stale price indicators
 - Refresh price capability
 
 #### ProductCardWithStablePricing Component
+
 - Product display with stable pricing
 - Quantity controls
 - Add to cart functionality
 - Stock status indicators
 
 #### CartWithStablePricing Component
+
 - Shopping cart with dual currency totals
 - Quantity management
 - Currency preference switching
@@ -96,6 +105,7 @@ impl PriceConverter {
 ## 📊 Usage Examples
 
 ### **Product Registration with Stable Pricing**
+
 ```typescript
 const productData = {
   uuid: generateUUID(),
@@ -103,17 +113,18 @@ const productData = {
   description: "Premium timepiece",
   price: 500, // Legacy field
   stablePricing: {
-    usdcPrice: 1250.00,    // $1,250 USDC
-    solPrice: 12.50,       // 12.5 SOL (assuming 1 SOL = $100)
+    usdcPrice: 1250.0, // $1,250 USDC
+    solPrice: 12.5, // 12.5 SOL (assuming 1 SOL = $100)
     lastUpdated: new Date(),
-    isFixed: true          // Fixed pricing mode
+    isFixed: true, // Fixed pricing mode
   },
   stock: 5,
-  isActive: true
+  isActive: true,
 };
 ```
 
 ### **Price Display in Frontend**
+
 ```tsx
 <StablePriceDisplay
   stablePrice={product.stablePricing}
@@ -124,11 +135,14 @@ const productData = {
 ```
 
 ### **Shopping Cart with Totals**
+
 ```tsx
 <CartWithStablePricing
   items={cartItems}
   onCheckout={(items, totals) => {
-    console.log(`Total: ${totals.formattedUsdcTotal} / ${totals.formattedSolTotal}`);
+    console.log(
+      `Total: ${totals.formattedUsdcTotal} / ${totals.formattedSolTotal}`
+    );
   }}
   preferredCurrency={userPreferredCurrency}
 />
@@ -137,6 +151,7 @@ const productData = {
 ## 🎮 Demo Implementation
 
 A complete demo page (`StablePricingDemo.tsx`) showcases:
+
 - Multiple products with different pricing modes
 - Interactive currency switching
 - Shopping cart functionality
@@ -146,6 +161,7 @@ A complete demo page (`StablePricingDemo.tsx`) showcases:
 ## 🔗 Deployment Information
 
 ### **Program Details**
+
 - **Program ID**: `G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb`
 - **Network**: Solana Devnet
 - **Last Deployed**: Slot 401,764,832
@@ -153,24 +169,28 @@ A complete demo page (`StablePricingDemo.tsx`) showcases:
 - **Status**: ✅ Successfully Deployed & Operational
 
 ### **Verification Links**
+
 - **Solana Explorer**: [View Program](https://explorer.solana.com/address/G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb?cluster=devnet)
 - **GitHub Repository**: [SodapV2.0](https://github.com/tenrikut/SodapV2.0)
 
 ## 💡 Benefits for Users
 
 ### **For Customers**
+
 1. **Price Transparency**: Always know exact costs in preferred currency
 2. **Stable Shopping**: Avoid price shock from crypto volatility
 3. **Flexible Payment**: Choose between USDC stability or SOL convenience
 4. **Real-time Updates**: Get latest pricing information automatically
 
 ### **For Merchants**
+
 1. **Pricing Control**: Set fixed prices or use dynamic market pricing
 2. **Dual Revenue**: Accept payments in both USDC and SOL
 3. **Global Reach**: Serve customers with different currency preferences
 4. **Risk Management**: Fixed pricing protects against volatility
 
 ### **For Developers**
+
 1. **Easy Integration**: Simple API for price conversion and display
 2. **Flexible Components**: Reusable React components for pricing UI
 3. **Type Safety**: Full TypeScript support with proper interfaces
@@ -187,6 +207,7 @@ A complete demo page (`StablePricingDemo.tsx`) showcases:
 ## 📈 Impact
 
 This stable pricing implementation significantly enhances SODAP v2.0 by:
+
 - **Improving User Experience**: Clear, stable pricing reduces friction
 - **Expanding Market Reach**: Appeals to both crypto and traditional users
 - **Reducing Volatility Risk**: Fixed pricing protects both buyers and sellers

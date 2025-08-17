@@ -14,11 +14,11 @@ impl PriceConverter {
         }
         
         // Convert USDC (6 decimals) to SOL (9 decimals)
-        // Formula: (usdc_amount * 10^9) / (sol_price_in_usdc * 10^3)
+        // Formula: (usdc_amount * 10^9) / sol_price_in_usdc
         let sol_amount = usdc_amount
-            .checked_mul(1_000_000_000) // Add 9 decimal places for SOL
+            .checked_mul(1_000_000_000) // Convert to 9 decimal places for SOL
             .ok_or(CustomError::ArithmeticError)?
-            .checked_div(sol_price_in_usdc.checked_mul(1_000).ok_or(CustomError::ArithmeticError)?) // sol_price has 6 decimals, add 3 more
+            .checked_div(sol_price_in_usdc) // sol_price already has 6 decimals
             .ok_or(CustomError::ArithmeticError)?;
             
         Ok(sol_amount)
@@ -27,11 +27,11 @@ impl PriceConverter {
     /// Convert SOL to USDC using current exchange rate
     /// SOL has 9 decimals, USDC has 6 decimals
     pub fn sol_to_usdc(sol_amount: u64, sol_price_in_usdc: u64) -> Result<u64> {
-        // Formula: (sol_amount * sol_price_in_usdc) / 10^3
+        // Formula: (sol_amount * sol_price_in_usdc) / 10^9 * 10^6 = (sol_amount * sol_price_in_usdc) / 10^3
         let usdc_amount = sol_amount
             .checked_mul(sol_price_in_usdc)
             .ok_or(CustomError::ArithmeticError)?
-            .checked_div(1_000) // Remove 3 decimal places (9 SOL decimals - 6 USDC decimals)
+            .checked_div(1_000_000_000) // Remove 9 decimal places from SOL
             .ok_or(CustomError::ArithmeticError)?;
             
         Ok(usdc_amount)
@@ -121,6 +121,7 @@ mod tests {
         
         let sol_amount = PriceConverter::usdc_to_sol(usdc_amount, sol_price_usdc).unwrap();
         // Should get 0.5 SOL = 500_000_000 lamports
+        // Formula: (50_000_000 * 1_000_000_000) / 100_000_000 = 500_000_000
         assert_eq!(sol_amount, 500_000_000);
     }
     
@@ -132,6 +133,7 @@ mod tests {
         
         let usdc_amount = PriceConverter::sol_to_usdc(sol_amount, sol_price_usdc).unwrap();
         // Should get $50 = 50_000_000 with 6 decimals
+        // Formula: (500_000_000 * 100_000_000) / 1_000_000_000 = 50_000_000_000_000_000 / 1_000_000_000 = 50_000_000
         assert_eq!(usdc_amount, 50_000_000);
     }
     

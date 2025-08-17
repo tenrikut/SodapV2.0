@@ -39,7 +39,7 @@ pub fn register_product(
     let product = &mut ctx.accounts.product;
     product.uuid = product_uuid;
     product.price = price; // Keep legacy field for backward compatibility
-    
+
     // Set stable pricing
     product.stable_pricing = StablePrice {
         usdc_price,
@@ -47,7 +47,7 @@ pub fn register_product(
         last_updated: Clock::get()?.unix_timestamp,
         is_fixed: is_fixed_pricing,
     };
-    
+
     product.stock = stock;
     product.tokenized_type = tokenized_type;
     product.metadata_uri = metadata_uri;
@@ -76,15 +76,18 @@ pub fn update_product(
     }
 
     // Update stable pricing if provided
-    if new_usdc_price.is_some() || new_sol_price.is_some() || update_price_timestamp.unwrap_or(false) {
+    if new_usdc_price.is_some()
+        || new_sol_price.is_some()
+        || update_price_timestamp.unwrap_or(false)
+    {
         if let Some(usdc_price) = new_usdc_price {
             product.stable_pricing.usdc_price = usdc_price;
         }
-        
+
         if let Some(sol_price) = new_sol_price {
             product.stable_pricing.sol_price = sol_price;
         }
-        
+
         if update_price_timestamp.unwrap_or(false) {
             product.stable_pricing.last_updated = Clock::get()?.unix_timestamp;
         }

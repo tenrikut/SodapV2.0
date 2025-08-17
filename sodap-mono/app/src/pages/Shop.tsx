@@ -3,7 +3,9 @@ import Layout from "@/components/layout/Layout";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Search, Filter, ChevronDown, ShoppingBag, X } from "lucide-react";
+import { Search, Filter, ChevronDown, ShoppingBag, X, DollarSign, Coins, RefreshCw } from "lucide-react";
+import { PriceConverter, Currency } from "@/types/pricing";
+import { useSolPrice } from "@/hooks/useSolPrice";
 import {
   Select,
   SelectContent,
@@ -35,7 +37,7 @@ const getProductsByStore = (storeId: string) => {
       {
         id: "501",
         name: "Rolex Submariner",
-        price: 0.1,
+        price: 3900,
         image: "/images/Rolex .png",
         description:
           "Iconic diving watch with unidirectional rotating bezel and water resistance up to 300 meters",
@@ -43,7 +45,7 @@ const getProductsByStore = (storeId: string) => {
       {
         id: "502",
         name: 'Omega Speedmaster "Moonwatch"',
-        price: 0.3,
+        price: 5700,
         image: "/images/omega.png",
         description:
           "The first watch worn on the moon with manual-winding chronograph movement",
@@ -51,7 +53,7 @@ const getProductsByStore = (storeId: string) => {
       {
         id: "503",
         name: "Patek Philippe Nautilus 5711/1A",
-        price: 0.49,
+        price: 2900,
         image: "/images/patek-philippe.png",
         description:
           "Luxury sports watch with distinctive porthole-shaped case design",
@@ -59,7 +61,7 @@ const getProductsByStore = (storeId: string) => {
       {
         id: "504",
         name: "Seiko",
-        price: 0.5,
+        price: 1500,
         image: "/images/seiko.png",
         description:
           "Reliable Japanese timepiece known for its quality craftsmanship and durability",
@@ -67,7 +69,7 @@ const getProductsByStore = (storeId: string) => {
       {
         id: "505",
         name: "TAG Heuer Carrera Calibre",
-        price: 0.02,
+        price: 1900,
         image: "/images/tag.png",
         description:
           "Racing-inspired chronograph watch with sophisticated movement and elegant design",
@@ -118,6 +120,9 @@ const mockStores = [
 ];
 
 const Shop: React.FC = () => {
+  // Real-time SOL price (auto-refresh every 30 seconds)
+  const { solPriceUsd, isLoading: priceLoading, error: priceError, source, refreshPrice } = useSolPrice(30000);
+
   // Load cart from localStorage on initial render
   const initialCart = () => {
     const storedCart = localStorage.getItem("cart");
@@ -192,7 +197,9 @@ const Shop: React.FC = () => {
       subtotal.toFixed(3)
     );
     // Save cart details for the payment page
-    sessionStorage.setItem("cartTotal", subtotal.toFixed(3));
+    const solTotal = PriceConverter.usdcToSol(subtotal, solPriceUsd);
+    sessionStorage.setItem("cartTotal", solTotal.toFixed(4));
+    sessionStorage.setItem("cartTotalUsdc", subtotal.toFixed(2));
 
     // Get the store ID from the URL
     const params = new URLSearchParams(location.search);
@@ -370,40 +377,64 @@ const Shop: React.FC = () => {
                             <X size={16} />
                           </button>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-                          {item.product.description}
-                        </p>
-                        <div className="flex justify-between items-center mt-2">
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              onClick={() => {
-                                if (item.quantity > 1) {
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 mb-2">{item.product.name}</h3>
+                          <p className="text-sm text-gray-600 mb-4 leading-relaxed">{item.product.description}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-green-600" />
+                                <span className="text-lg font-bold text-green-600">
+                                  ${(item.product.price * item.quantity).toLocaleString()}
+                                </span>
+                                <span className="font-semibold text-green-600">USDC</span>
+                              </div>
+                              <div className="flex items-center gap-1 ml-1">
+                                <Coins className="w-3 h-3 text-gray-500" />
+                                <span className="text-xs text-gray-500">
+                                  You'll pay: {PriceConverter.usdcToSol(item.product.price * item.quantity, solPriceUsd).toFixed(4)} SOL
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <button 
+                                onClick={() => {
+                                  if (item.quantity > 1) {
+                                    setCart(cart.map(i => 
+                                      i.product.id === item.product.id 
+                                        ? { ...i, quantity: i.quantity - 1 } 
+                                        : i
+                                    ));
+                                  }
+                                }}
+                                className="h-6 w-6 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                              >
+                                -
+                              </button>
+                              <span className="text-sm">{item.quantity}</span>
+                              <button 
+                                onClick={() => {
                                   setCart(cart.map(i => 
                                     i.product.id === item.product.id 
-                                      ? { ...i, quantity: i.quantity - 1 } 
+                                      ? { ...i, quantity: i.quantity + 1 } 
                                       : i
                                   ));
-                                }
-                              }}
-                              className="h-6 w-6 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm">{item.quantity}</span>
-                            <button 
-                              onClick={() => {
-                                setCart(cart.map(i => 
-                                  i.product.id === item.product.id 
-                                    ? { ...i, quantity: i.quantity + 1 } 
-                                    : i
-                                ));
-                              }}
-                              className="h-6 w-6 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
-                            >
-                              +
-                            </button>
+                                }}
+                                className="h-6 w-6 rounded-full border flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
-                          <span className="font-medium">{(item.product.price * item.quantity).toFixed(3)} SOL</span>
+                          <div className="text-right space-y-1">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="font-bold text-lg text-green-600">${(item.product.price * item.quantity).toLocaleString()}</span>
+                              <span className="font-semibold text-green-600">USDC</span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Pay: {PriceConverter.usdcToSol(item.product.price * item.quantity, solPriceUsd).toFixed(4)} SOL
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -414,7 +445,17 @@ const Shop: React.FC = () => {
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between py-2 border-t border-b">
                   <span className="font-medium">Subtotal</span>
-                  <span className="font-medium">{subtotal.toFixed(3)} SOL</span>
+                  <div className="text-right">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-bold text-2xl text-green-600">${subtotal.toLocaleString()}</span>
+                        <span className="font-semibold text-lg text-green-600">USDC</span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        You'll pay: {PriceConverter.usdcToSol(subtotal, solPriceUsd).toFixed(4)} SOL
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <Button 
                   className="w-full bg-sodap-purple hover:bg-purple-700" 
@@ -476,18 +517,42 @@ const Shop: React.FC = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Store header with search and filters */}
         <div className="mb-8 space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{currentStore.name}</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {username}</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {currentStore ? currentStore.name : "Shop"}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Discover amazing products from verified stores
+              </p>
             </div>
-            <Button
-              onClick={() => navigate("/store-selection")}
-              variant="outline"
-              className="border-sodap-purple text-sodap-purple hover:bg-sodap-purple/5"
-            >
-              Change Store
-            </Button>
+            
+            {/* Real-time SOL Price Indicator */}
+            <div className="flex items-center gap-4">
+              <div className="bg-white rounded-lg border px-4 py-2 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium">
+                    SOL: ${solPriceUsd.toFixed(2)}
+                  </span>
+                  {source && (
+                    <span className="text-xs text-gray-500">({source})</span>
+                  )}
+                  <button
+                    onClick={refreshPrice}
+                    className="ml-1 p-1 hover:bg-gray-100 rounded"
+                    title="Refresh price"
+                  >
+                    <RefreshCw className={`w-3 h-3 text-gray-400 ${priceLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+                {priceError && (
+                  <div className="text-xs text-red-500 mt-1">
+                    Price unavailable
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           
           <div className="flex flex-col md:flex-row gap-4">
@@ -565,7 +630,7 @@ const Shop: React.FC = () => {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 group flex flex-col h-[400px]"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 group flex flex-col h-[420px]"
               >
                 <div className="relative h-48 overflow-hidden bg-gray-50 flex-shrink-0">
                   <img
@@ -575,25 +640,34 @@ const Shop: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
                 </div>
-                <div className="p-5 flex flex-col h-[180px]">
-                  <h2 className="font-medium text-lg mb-1 text-gray-900 line-clamp-1">{product.name}</h2>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2 h-10">
+                <div className="p-5 flex flex-col h-[200px]">
+                  <h2 className="font-semibold text-lg mb-2 text-gray-900 line-clamp-1">{product.name}</h2>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1 leading-relaxed">
                     {product.description}
                   </p>
-                  <div className="mt-auto pt-3 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-lg">{product.price} SOL</span>
-                      <Button
-                        onClick={() => {
-                          addToCart(product);
-                          setIsCartOpen(true);
-                        }}
-                        className="bg-sodap-purple hover:bg-purple-700 text-white"
-                        size="sm"
-                      >
-                        Add to Cart
-                      </Button>
+                  <div className="mt-auto space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-2xl text-green-600">${product.price.toLocaleString()}</span>
+                        <span className="font-semibold text-lg text-green-600">USDC</span>
+                      </div>
+                      <div className="flex items-center gap-1 ml-1">
+                        <Coins className="w-3 h-3 text-gray-500" />
+                        <span className="text-xs text-gray-500">
+                          You'll pay: {PriceConverter.usdcToSol(product.price, solPriceUsd).toFixed(4)} SOL
+                        </span>
+                      </div>
                     </div>
+                    <Button
+                      onClick={() => {
+                        addToCart(product);
+                        setIsCartOpen(true);
+                      }}
+                      className="w-full bg-sodap-purple hover:bg-purple-700 text-white font-medium"
+                      size="sm"
+                    >
+                      Add to Cart
+                    </Button>
                   </div>
                 </div>
               </div>

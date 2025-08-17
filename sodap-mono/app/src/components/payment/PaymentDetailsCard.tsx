@@ -2,8 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader } from 'lucide-react';
+import { Loader, DollarSign, Coins } from 'lucide-react';
 import { WalletConnector } from './WalletConnector';
+import { PriceConverter, Currency } from '@/types/pricing';
 
 interface PaymentDetailsCardProps {
   cartTotal: string;
@@ -12,6 +13,7 @@ interface PaymentDetailsCardProps {
   isProcessing: boolean;
   onConnectWallet: () => void;
   onPayment: () => void;
+  solPriceInUsdc?: number; // Current SOL price in USDC for stable pricing display
 }
 
 export const PaymentDetailsCard: React.FC<PaymentDetailsCardProps> = ({
@@ -20,7 +22,8 @@ export const PaymentDetailsCard: React.FC<PaymentDetailsCardProps> = ({
   isConnecting,
   isProcessing,
   onConnectWallet,
-  onPayment
+  onPayment,
+  solPriceInUsdc = 100 // Default: 1 SOL = $100 USDC
 }) => {
   return (
     <Card>
@@ -28,9 +31,36 @@ export const PaymentDetailsCard: React.FC<PaymentDetailsCardProps> = ({
         <CardTitle>Payment Details</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex justify-between py-2">
-          <span>Total Amount:</span>
-          <span className="font-bold">{cartTotal} SOL</span>
+        {/* Stable Pricing Display */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border">
+          <div className="flex items-center gap-2 mb-3">
+            <Coins className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-gray-700">Stable Pricing</span>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4 text-orange-500" />
+                <span className="text-sm">SOL Amount:</span>
+              </div>
+              <span className="font-bold text-lg">{cartTotal} SOL</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-500" />
+                <span className="text-sm">USDC Equivalent:</span>
+              </div>
+              <span className="font-bold text-lg text-green-600">
+                ${PriceConverter.solToUsdc(parseFloat(cartTotal), solPriceInUsdc).toFixed(2)}
+              </span>
+            </div>
+            
+            <div className="text-xs text-gray-500 text-center pt-2 border-t">
+              Exchange Rate: 1 SOL = ${solPriceInUsdc.toFixed(2)} USDC
+            </div>
+          </div>
         </div>
         
         <WalletConnector 

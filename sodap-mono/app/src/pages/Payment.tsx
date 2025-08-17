@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ProfileProvider, useProfile } from "@/contexts/ProfileContext";
 import { useAnchor } from "@/hooks/useAnchor";
+import { useSolPrice } from "../hooks/useSolPrice";
 import {
   createPurchaseTransaction,
   sendTransaction,
@@ -47,6 +48,10 @@ const PaymentContent: React.FC = (): React.ReactElement => {
   const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaymentMethodSelection | null>(null);
+  
+  // Real-time SOL price (auto-refresh every 30 seconds)
+  const { solPriceUsd, isLoading: priceLoading, error: priceError } = useSolPrice(30000);
+  
   const [transactionSignature, setTransactionSignature] = useState<
     string | null
   >(null);
@@ -769,6 +774,7 @@ const PaymentContent: React.FC = (): React.ReactElement => {
         isProcessing={isProcessing}
         onConnectWallet={handleConnectWallet}
         onPayment={handlePayment}
+        solPriceInUsdc={solPriceUsd} // Real-time SOL price in USDC
       />
 
       <div className="mt-4 text-center">
@@ -786,6 +792,7 @@ const PaymentContent: React.FC = (): React.ReactElement => {
         onOpenChange={setShowPaymentMethodDialog}
         onPaymentMethodSelect={handlePaymentMethodSelect}
         cartTotal={cartTotal}
+        solPriceInUsdc={solPriceUsd} // Real-time SOL price in USDC
       />
 
       <PaymentSuccessDialog

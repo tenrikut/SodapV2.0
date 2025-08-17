@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CreditCard, Calendar, Info, Gift } from "lucide-react";
+import { CreditCard, Calendar, Info, Gift, DollarSign, Coins } from "lucide-react";
+import { PriceConverter, Currency } from "@/types/pricing";
 
 export interface PaymentMethodSelection {
   method: "direct" | "bnpl";
@@ -42,6 +43,7 @@ interface PaymentMethodDialogProps {
   onOpenChange: (open: boolean) => void;
   onPaymentMethodSelect: (selection: PaymentMethodSelection) => void;
   cartTotal: string;
+  solPriceInUsdc?: number; // Current SOL price in USDC for stable pricing display
 }
 
 export const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
@@ -49,6 +51,7 @@ export const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   onOpenChange,
   onPaymentMethodSelect,
   cartTotal,
+  solPriceInUsdc = 100, // Default: 1 SOL = $100 USDC
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<"direct" | "bnpl">(
     "direct"
@@ -136,7 +139,7 @@ export const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
             Choose Payment Method
           </DialogTitle>
           <DialogDescription>
-            Select how you'd like to pay for your order of {cartTotal} SOL
+            Select how you'd like to pay for your order of {cartTotal} SOL (≈ ${PriceConverter.solToUsdc(totalAmount, solPriceInUsdc).toFixed(2)} USDC)
           </DialogDescription>
         </DialogHeader>
 
@@ -170,9 +173,14 @@ export const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
                     <span className="text-sm text-green-700">
                       Total Amount:
                     </span>
-                    <span className="font-bold text-green-800">
-                      {cartTotal} SOL
-                    </span>
+                    <div className="text-right">
+                      <div className="font-bold text-green-800">
+                        {cartTotal} SOL
+                      </div>
+                      <div className="text-xs text-green-600">
+                        ≈ ${PriceConverter.solToUsdc(totalAmount, solPriceInUsdc).toFixed(2)} USDC
+                      </div>
+                    </div>
                   </div>
                   <div className="text-xs text-green-600 mt-1">
                     ✓ No interest or additional fees
@@ -232,17 +240,27 @@ export const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
                         <span className="text-sm text-blue-700">
                           Downpayment (20%):
                         </span>
-                        <span className="font-bold text-blue-800">
-                          {bnplDetails.downpayment} SOL
-                        </span>
+                        <div className="text-right">
+                          <div className="font-bold text-blue-800">
+                            {bnplDetails.downpayment} SOL
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            ≈ ${PriceConverter.solToUsdc(parseFloat(bnplDetails.downpayment), solPriceInUsdc).toFixed(2)} USDC
+                          </div>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-blue-700">
                           Monthly Payment:
                         </span>
-                        <span className="font-medium text-blue-800">
-                          {bnplDetails.monthlyPayment} SOL
-                        </span>
+                        <div className="text-right">
+                          <div className="font-medium text-blue-800">
+                            {bnplDetails.monthlyPayment} SOL
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            ≈ ${PriceConverter.solToUsdc(parseFloat(bnplDetails.monthlyPayment), solPriceInUsdc).toFixed(2)} USDC
+                          </div>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-blue-700">Term:</span>

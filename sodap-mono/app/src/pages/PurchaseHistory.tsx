@@ -13,11 +13,17 @@ import {
 import { Textarea } from "../components/ui/textarea";
 import { useReturnRequests } from "../hooks/useReturnRequests";
 import { toast } from "sonner";
+import { PriceConverter } from "../types/pricing";
+import { DollarSign, Coins } from "lucide-react";
+import { useSolPrice } from "../hooks/useSolPrice";
 
 export default function PurchaseHistory() {
   const { purchases, isLoading, error } = usePurchaseHistory();
   const { walletAddress } = useAnchor();
   const { createReturnRequest } = useReturnRequests();
+  
+  // Real-time SOL price
+  const { solPriceUsd } = useSolPrice();
 
   // State for return request dialog
   const [selectedPurchase, setSelectedPurchase] = useState<
@@ -101,7 +107,18 @@ export default function PurchaseHistory() {
                       <span>
                         {item.name} × {item.quantity}
                       </span>
-                      <span>{item.price} SOL</span>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1">
+                          <Coins className="w-3 h-3 text-purple-600" />
+                          <span>{item.price} SOL</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-2 h-2 text-green-600" />
+                          <span className="text-xs text-gray-500">
+                            ${PriceConverter.solToUsdc(item.price, solPriceUsd).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

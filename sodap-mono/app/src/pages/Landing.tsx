@@ -1,5 +1,6 @@
 import React from 'react';
 import ErrorBoundary from '@/components/debug/ErrorBoundary';
+import CryptoPriceTicker from '@/components/landing/CryptoPriceTicker';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import StoresSection from '@/components/landing/StoresSection';
@@ -11,6 +12,10 @@ const Landing: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+
+      <ErrorBoundary>
+        <CryptoPriceTicker />
+      </ErrorBoundary>
 
       <ErrorBoundary>
         <HeroSection />

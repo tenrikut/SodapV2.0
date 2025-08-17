@@ -7,6 +7,9 @@ import type { CartItem as CartItemType } from "@/types/cart";
 import { useCart } from "@/hooks/useCart";
 import { useAnchor } from "@/hooks/useAnchor";
 import { toast } from "sonner";
+import { useSolPrice } from "../hooks/useSolPrice";
+import { PriceConverter } from "@/types/pricing";
+import { DollarSign, Coins } from "lucide-react";
 
 // Create a component that uses the profile context
 const CartContent: React.FC = () => {
@@ -14,12 +17,22 @@ const CartContent: React.FC = () => {
   const { cartItems, setCartItems, updateQuantity, removeItem } = useCart();
   const { walletAddress } = useAnchor();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Real-time SOL price
+  const { solPriceUsd } = useSolPrice();
 
   // Get the selected store ID from session storage
   const selectedStoreId = sessionStorage.getItem("selectedStoreId");
 
-  // Calculate subtotal
-  const subtotal = cartItems.reduce((acc, item: CartItemType) => acc + (item.product.price * item.quantity), 0);
+  // Calculate subtotal in USDC (fixed pricing)
+  const subtotalUsdc = cartItems.reduce((acc, item: CartItemType) => {
+    // Assuming product price is stored in USDC
+    const usdcPrice = item.product.price; // This should be USDC price
+    return acc + (usdcPrice * item.quantity);
+  }, 0);
+
+  // Calculate equivalent SOL amount for payment
+  const subtotalSol = PriceConverter.usdcToSol(subtotalUsdc, solPriceUsd);
 
   // Function to navigate to store selection
   const navigateToStoreSelection = () => {
@@ -40,8 +53,9 @@ const CartContent: React.FC = () => {
         return;
       }
 
-      // Save cart total for the payment page
-      sessionStorage.setItem("cartTotal", subtotal.toString());
+      // Save cart total for the payment page (in SOL for payment)
+      sessionStorage.setItem("cartTotal", subtotalSol.toString());
+      sessionStorage.setItem("cartTotalUsdc", subtotalUsdc.toString());
 
       // Navigate to payment page with store ID
       navigate(`/payment?storeId=${selectedStoreId}`);
@@ -74,6 +88,7 @@ const CartContent: React.FC = () => {
                 item={item}
                 updateQuantity={updateQuantity}
                 removeItem={removeItem}
+                solPriceInUsdc={solPriceUsd}
               />
             ))}
           </div>
@@ -81,15 +96,27 @@ const CartContent: React.FC = () => {
           {/* Cart summary */}
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-4">
-              <span className="font-semibold">Subtotal:</span>
-              <span>{subtotal} SOL</span>
+              <span className="font-semibold text-lg">Subtotal:</span>
+              <div className="text-right">
+                <div className="flex items-center gap-2 justify-end">
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                  <span className="font-bold text-2xl text-green-600">${subtotalUsdc.toFixed(2)}</span>
+                  <span className="font-semibold text-lg text-green-600">USDC</span>
+                </div>
+                <div className="flex items-center gap-1 justify-end mt-1">
+                  <Coins className="w-3 h-3 text-gray-500" />
+                  <span className="text-sm text-gray-500">
+                    You'll pay: {subtotalSol.toFixed(4)} SOL
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Button
                 className="w-full"
                 onClick={handleCheckout}
-                disabled={isProcessingPayment || cartItems.length === 0}
+                disabled={isProcessingPayment || cartItems.length === 0 || !solPriceUsd}
               >
                 {isProcessingPayment ? "Processing..." : "Proceed to Checkout"}
               </Button>

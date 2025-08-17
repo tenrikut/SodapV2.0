@@ -192,3 +192,156 @@
   background-color: hsl(var(--primary));
   color: white;
 }
+
+/* Custom animations for hero section */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 3s ease-in-out infinite 1.5s;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Blockchain-themed animations */
+@keyframes draw-line {
+  0% {
+    stroke-dasharray: 0 100;
+  }
+  100% {
+    stroke-dasharray: 100 0;
+  }
+}
+
+@keyframes draw-line-delayed {
+  0% {
+    stroke-dasharray: 0 100;
+  }
+  100% {
+    stroke-dasharray: 100 0;
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes data-flow-reverse {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes code-rain {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px);
+    opacity: 0;
+  }
+}
+
+@keyframes code-rain-delayed {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px);
+    opacity: 0;
+  }
+}
+
+.animate-draw-line {
+  animation: draw-line 3s ease-in-out infinite;
+  stroke-dasharray: 100;
+}
+
+.animate-draw-line-delayed {
+  animation: draw-line-delayed 3s ease-in-out infinite 1.5s;
+  stroke-dasharray: 100;
+}
+
+.animate-data-flow {
+  animation: data-flow 2s linear infinite;
+}
+
+.animate-data-flow-reverse {
+  animation: data-flow-reverse 2.5s linear infinite;
+}
+
+.animate-code-rain {
+  animation: code-rain 4s linear infinite;
+}
+
+.animate-code-rain-delayed {
+  animation: code-rain-delayed 4s linear infinite 2s;
+}
+
+/* Blockchain grid background */
+.blockchain-grid {
+  background-image: 
+    linear-gradient(rgba(126, 87, 194, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 87, 194, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+.blockchain-node {
+  box-shadow: 0 0 20px rgba(126, 87, 194, 0.5);
+}
