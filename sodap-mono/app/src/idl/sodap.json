@@ -1,5 +1,5 @@
 {
-  "address": "9HYgQUotQqJ9muAbFbJ5Ck8n5SCrdf3KMaSa1iUGsrb6",
+  "address": "G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb",
   "metadata": {
     "name": "sodap",
     "version": "0.1.0",
@@ -456,6 +456,126 @@
         {
           "name": "product_id",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "deduct_loyalty_points",
+      "discriminator": [
+        139,
+        63,
+        10,
+        181,
+        85,
+        147,
+        131,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "loyalty_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "store"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "store",
+          "writable": true,
+          "relations": [
+            "loyalty_account"
+          ]
+        },
+        {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "store"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction_record",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "loyalty_account"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "refund_amount",
+          "type": "u64"
+        },
+        {
+          "name": "point_type",
+          "type": {
+            "defined": {
+              "name": "LoyaltyPointType"
+            }
+          }
         }
       ]
     },

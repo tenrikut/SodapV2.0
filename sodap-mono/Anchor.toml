@@ -27,6 +27,11 @@ test-script = "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
+skip_deploy = true
+
+[test.devnet]
+skip_deploy = true
+skip_local_validator = true
 
 [test.validator]
 bind_address = "0.0.0.0"

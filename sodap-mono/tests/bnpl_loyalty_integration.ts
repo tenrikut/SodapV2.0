@@ -8,6 +8,7 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { expect } from "chai";
+import { fundTestAccount } from "./utils/devnet-utils";
 
 describe("BNPL and Loyalty Integration Tests", () => {
   // Configure the client to use the local cluster.
@@ -30,18 +31,9 @@ describe("BNPL and Loyalty Integration Tests", () => {
     storeOwner = Keypair.generate();
     customer = Keypair.generate();
 
-    // Airdrop SOL to test accounts
-    await provider.connection.requestAirdrop(
-      storeOwner.publicKey,
-      5 * LAMPORTS_PER_SOL
-    );
-    await provider.connection.requestAirdrop(
-      customer.publicKey,
-      10 * LAMPORTS_PER_SOL
-    );
-
-    // Wait for airdrops to confirm
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Fund test accounts using utility function to avoid rate limits
+    await fundTestAccount(provider, storeOwner.publicKey, 5);
+    await fundTestAccount(provider, customer.publicKey, 10);
 
     // Derive PDAs
     [store] = PublicKey.findProgramAddressSync(
@@ -441,11 +433,7 @@ describe("BNPL and Loyalty Integration Tests", () => {
       try {
         // Create a customer with low credit score
         const lowCreditCustomer = Keypair.generate();
-        await provider.connection.requestAirdrop(
-          lowCreditCustomer.publicKey,
-          2 * LAMPORTS_PER_SOL
-        );
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await fundTestAccount(provider, lowCreditCustomer.publicKey, 2);
 
         const [lowCreditScore] = PublicKey.findProgramAddressSync(
           [Buffer.from("credit_score"), lowCreditCustomer.publicKey.toBuffer()],
@@ -504,25 +492,19 @@ describe("BNPL and Loyalty Integration Tests", () => {
           console.log("✅ BNPL loan correctly rejected for excessive amount");
         }
       } catch (error) {
-        console.log("❌ Error handling test failed:", error);
-        throw error;
-      }
-    });
-
     it("Should reject loyalty points redemption for insufficient balance", async () => {
-      try {
-        const newCustomer = Keypair.generate();
-        await provider.connection.requestAirdrop(
-          newCustomer.publicKey,
-          2 * LAMPORTS_PER_SOL
-        );
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Create a customer with low credit score
+      const newCustomer = Keypair.generate();
+      await fundTestAccount(provider, newCustomer.publicKey, 2);
 
-        const [newLoyaltyAccount] = PublicKey.findProgramAddressSync(
-          [
-            Buffer.from("loyalty_account"),
-            store.toBuffer(),
-            newCustomer.publicKey.toBuffer(),
+      const [newLoyaltyAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("loyalty_account"),
+          store.toBuffer(),
+          newCustomer.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
           ],
           program.programId
         );

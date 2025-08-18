@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/sodap.json`.
  */
 export type Sodap = {
-  "address": "9HYgQUotQqJ9muAbFbJ5Ck8n5SCrdf3KMaSa1iUGsrb6",
+  "address": "G2B8xnzSUP9fhJ5dWDGYWWmUbRA6WjZ3hySyp5hFbyTb",
   "metadata": {
     "name": "sodap",
     "version": "0.1.0",
@@ -462,6 +462,126 @@ export type Sodap = {
         {
           "name": "productId",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "deductLoyaltyPoints",
+      "discriminator": [
+        139,
+        63,
+        10,
+        181,
+        85,
+        147,
+        131,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "loyaltyAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "store"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "store",
+          "writable": true,
+          "relations": [
+            "loyaltyAccount"
+          ]
+        },
+        {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "store"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transactionRecord",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "loyaltyAccount"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "refundAmount",
+          "type": "u64"
+        },
+        {
+          "name": "pointType",
+          "type": {
+            "defined": {
+              "name": "loyaltyPointType"
+            }
+          }
         }
       ]
     },

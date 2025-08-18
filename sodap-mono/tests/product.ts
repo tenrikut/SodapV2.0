@@ -5,6 +5,7 @@ import { PublicKey, SystemProgram, Keypair, LAMPORTS_PER_SOL } from "@solana/web
 import { assert } from "chai";
 import { Buffer } from "buffer";
 import { fundMultipleTestAccounts } from "./utils/devnet-utils";
+import { TEST_CONFIG, initializeProgram, addTransactionDelay } from "./test-config";
 
 describe("sodap product", () => {
   // Configure the client to use the local cluster
@@ -17,8 +18,8 @@ describe("sodap product", () => {
   const storeOwner = Keypair.generate();
   const buyer = Keypair.generate();
   
-  // Use the same hardcoded store PDA as in the store test
-  let storePda = new PublicKey("BhfGKfh5wAGoHdSDbcNg5DCyaySRmCtw2rsBjFUfcodS");
+  // Derive store PDA correctly based on the store owner
+  let storePda: PublicKey;
   let escrowPda: PublicKey;
   let productPda: PublicKey;
   
@@ -58,8 +59,17 @@ describe("sodap product", () => {
       throw error; // Fail the test if funding fails
     }
     
-    // Using hardcoded store PDA
-    console.log("Using hardcoded Store PDA:", storePda.toBase58());
+    // Derive store PDA correctly based on the store owner
+    const storeSeeds = [
+      Buffer.from("store"),
+      storeOwner.publicKey.toBuffer()
+    ];
+    const [storeKey, storeBump] = PublicKey.findProgramAddressSync(
+      storeSeeds,
+      program.programId
+    );
+    storePda = storeKey;
+    console.log("Derived Store PDA:", storePda.toBase58());
     console.log("Store owner:", storeOwner.publicKey.toBase58());
     
     // Derive escrow PDA
@@ -91,9 +101,7 @@ describe("sodap product", () => {
           TEST_STORE_LOGO
         )
         .accounts({
-          store: storePda,
-          escrow: escrowPda,
-          owner: storeOwner.publicKey,
+          authority: storeOwner.publicKey,
           payer: storeOwner.publicKey,
           systemProgram: SystemProgram.programId,
         })

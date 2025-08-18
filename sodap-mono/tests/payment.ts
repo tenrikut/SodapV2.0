@@ -43,14 +43,19 @@ describe("sodap payment", () => {
       console.log("Wallet has sufficient balance for tests");
     }
     
-    // Use hardcoded Store PDA to match other tests
-    // This is the same PDA used in the store and product tests
-    storePda = new PublicKey("BhfGKfh5wAGoHdSDbcNg5DCyaySRmCtw2rsBjFUfcodS");
+    // Derive Store PDA dynamically using the current wallet
+    [storePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("store"), storeOwner.publicKey.toBuffer()],
+      program.programId
+    );
   
-    // Use hardcoded Escrow PDA to match other tests
-    escrowPda = new PublicKey("9UrJoXSsxMvruaX4afLDfpPMzy5hLrDy4W2yUoG8NP8E");
+    // Derive Escrow PDA dynamically
+    [escrowPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow"), storePda.toBuffer()],
+      program.programId
+    );
     
-    console.log("Using hardcoded Store PDA:", storePda.toBase58());
+    console.log("Derived Store PDA:", storePda.toBase58());
     console.log("Store owner:", storeOwner.publicKey.toBase58());
     console.log("Escrow PDA:", escrowPda.toBase58());
     
@@ -150,13 +155,15 @@ describe("sodap payment", () => {
         .purchaseCart(
           [productPda],
           [new anchor.BN(1)],
-          new anchor.BN(productPrice)
+          new anchor.BN(productPrice),
+          { fullPayment: {} }, // PaymentMethod::FullPayment
+          null, // No BNPL term
+          null  // No loyalty points
         )
         .accounts({
           store: storePda,
           receipt: receiptKeypair.publicKey,
           buyer: buyer.publicKey,
-          payer: buyer.publicKey,
           storeOwner: storeOwner.publicKey,
           escrowAccount: escrowPda,
           systemProgram: SystemProgram.programId,
@@ -251,13 +258,15 @@ describe("sodap payment", () => {
         .purchaseCart(
           [productPda],
           [new anchor.BN(1)],
-          new anchor.BN(productPrice)
+          new anchor.BN(productPrice),
+          { fullPayment: {} }, // PaymentMethod::FullPayment
+          null, // No BNPL term
+          null  // No loyalty points
         )
         .accounts({
           store: storePda,
           receipt: receiptKeypair.publicKey,
           buyer: buyer.publicKey,
-          payer: buyer.publicKey,
           storeOwner: storeOwner.publicKey,
           escrowAccount: escrowPda,
           systemProgram: SystemProgram.programId,
@@ -316,13 +325,15 @@ describe("sodap payment", () => {
         .purchaseCart(
           [productPda],
           [new anchor.BN(1)],
-          new anchor.BN(productPrice)
+          new anchor.BN(productPrice),
+          { fullPayment: {} }, // PaymentMethod::FullPayment
+          null, // No BNPL term
+          null  // No loyalty points
         )
         .accounts({
           store: storePda,
           receipt: receiptKeypair.publicKey,
           buyer: buyer.publicKey,
-          payer: buyer.publicKey,
           storeOwner: storeOwner.publicKey,
           escrowAccount: escrowPda,
           systemProgram: SystemProgram.programId,
@@ -392,13 +403,15 @@ describe("sodap payment", () => {
         .purchaseCart(
           [productPda],
           [new anchor.BN(1)],
-          new anchor.BN(productPrice)
+          new anchor.BN(productPrice),
+          { fullPayment: {} }, // PaymentMethod::FullPayment
+          null, // No BNPL term
+          null  // No loyalty points
         )
         .accounts({
           store: storePda,
           receipt: receiptKeypair.publicKey,
           buyer: buyer.publicKey,
-          payer: buyer.publicKey,
           storeOwner: storeOwner.publicKey,
           escrowAccount: escrowPda,
           systemProgram: SystemProgram.programId,

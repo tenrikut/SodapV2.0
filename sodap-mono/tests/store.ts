@@ -40,12 +40,20 @@ describe("sodap store", () => {
       throw error; // Fail the test if funding fails
     }
 
-    // Use hardcoded PDA that matches program's expectation
-    storePda = new PublicKey("BhfGKfh5wAGoHdSDbcNg5DCyaySRmCtw2rsBjFUfcodS");
-    console.log("Using hardcoded Store PDA:", storePda.toBase58());
+    // Derive Store PDA dynamically using the owner's public key
+    const storeSeeds = [
+      Buffer.from("store"),
+      owner.publicKey.toBuffer()
+    ];
+    const [storeKey, storeBump] = PublicKey.findProgramAddressSync(
+      storeSeeds,
+      program.programId
+    );
+    storePda = storeKey;
+    console.log("Derived Store PDA:", storePda.toBase58());
     console.log("Owner pubkey:", owner.publicKey.toBase58());
     
-    // Derive escrow PDA from the hardcoded store PDA
+    // Derive escrow PDA from the derived store PDA
     const escrowSeeds = [
       Buffer.from("escrow"),
       storePda.toBuffer()
@@ -76,11 +84,8 @@ describe("sodap store", () => {
           TEST_STORE_LOGO
         )
         .accounts({
-          store: storePda,
-          escrow: escrowPda,
-          owner: owner.publicKey,
+          authority: owner.publicKey,
           payer: owner.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .signers([owner])
         .rpc();
@@ -135,11 +140,8 @@ describe("sodap store", () => {
       await program.methods
         .registerStore(TEST_STORE_NAME, TEST_STORE_DESC, TEST_STORE_LOGO)
         .accounts({
-          store: storePda,
-          escrow: escrowPda,
-          owner: owner.publicKey,
+          authority: owner.publicKey,
           payer: owner.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .signers([owner])
         .rpc();
@@ -171,10 +173,8 @@ describe("sodap store", () => {
           "https://example.com/unauthorized.png"
         )
         .accounts({
-          store: storePda,
-          owner: unauthorizedUser.publicKey,
-          payer: unauthorizedUser.publicKey, // Explicitly add payer
-          systemProgram: SystemProgram.programId,
+          authority: unauthorizedUser.publicKey,
+          payer: unauthorizedUser.publicKey,
         })
         .signers([unauthorizedUser])
         .rpc();
