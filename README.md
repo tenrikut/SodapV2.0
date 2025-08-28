@@ -1,4 +1,4 @@
-# SoDapV2.0 - Scan to go decentralized in-store shopping platform .
+# SoDapV2.0 - Scan to buy decentralized in-store shopping platform .
 
 <div align="center">
   <img src="sodap landing page.png" alt="SoDap Logo" width="1000" style="border-radius: 10px;">
